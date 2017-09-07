@@ -21,13 +21,9 @@ function getMarkets() {
 }
 
 function listen() {
-    var websocketsclient = bittrex.websockets.subscribe(['BTC-ETH','BTC-SC','BTC-ZEN'], function(data) {
-        console.log(data)
-        if (data.M === 'updateExchangeState') {
-            data.A.forEach(function(data_for) {
-                console.log('Market Update for '+ data_for.MarketName, data_for);
-            });
-        }
+    bittrex.websockets.subscribe(['BTC-NEO'], function(data) {
+        console.log(data);
     });
 }
+
 listen();
