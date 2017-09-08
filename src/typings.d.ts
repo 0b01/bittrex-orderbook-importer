@@ -79,3 +79,17 @@ export interface UnhandledData {
 
 export type ExchangeCallback = (value: ExchangeStateUpdate, index?: number, array?: ExchangeStateUpdate[]) => void 
 export type SummaryCallback = (value: PairUpdate, index?: number, array?: PairUpdate[]) => void
+
+
+//================================
+//db updates
+
+export interface DBUpdate {
+    pair: string,
+    seq: number,
+    is_trade: boolean,
+    is_bid: boolean,
+    price: number,
+    size: number,
+    timestamp: number 
+}
