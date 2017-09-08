@@ -46,11 +46,11 @@ function allMarkets() {
         });
     });
 }
-//================================
 function listen(markets) {
     var websocketsclient = bittrex.websockets.subscribe(markets, function (data) {
         if (data.M === "updateExchangeState") {
             data.A.forEach(function (mkt) {
+                console.log(mkt.MarketName);
                 console.log(mkt.Buys);
             });
         }
@@ -73,7 +73,7 @@ function watch() {
                 case 1:
                     markets = _a.sent();
                     // listen(markets);
-                    listen(["BTC-NEO"]);
+                    listen(["BTC-NEO", "BTC-ETH"]);
                     return [2 /*return*/];
             }
         });
