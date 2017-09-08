@@ -134,7 +134,7 @@ function formatUpdate(v : ExchangeStateUpdate) {
                 is_bid: fill.OrderType === "BUY",
                 price: fill.Rate,
                 size: fill.Quantity,
-                timestamp: (new Date(fill.TimeStamp)).getTime(),
+                timestamp: (new Date(fill.TimeStamp)).getTime() / 1000,
                 type: null
             }
         );
