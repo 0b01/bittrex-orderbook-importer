@@ -91,5 +91,6 @@ export interface DBUpdate {
     is_bid: boolean,
     price: number,
     size: number,
-    timestamp: number 
+    timestamp: number,
+    type: number
 }

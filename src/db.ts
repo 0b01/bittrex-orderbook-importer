@@ -31,7 +31,8 @@ export async function createTableForPair(pair: string) : Promise<boolean> {
         price DOUBLE PRECISION,
         size DOUBLE PRECISION,
         ts DOUBLE PRECISION,
-        trade_id INTEGER
+        trade_id INTEGER,
+        type INTEGER
     );
     CREATE UNIQUE INDEX IF NOT EXISTS orderbook_${pair}_id_uindex ON orderbook_${pair} (id);
 
@@ -85,23 +86,25 @@ export async function tableExistsForPair(pair: string) : Promise<boolean> {
 
 export async function saveUpdate(
   pair: string, seq: number, is_trade: boolean,
-  is_bid: boolean, price: number, size: number, timestamp: number
+  is_bid: boolean, price: number, size: number, timestamp: number, type: number
 ) : Promise<void> {
   const client = await pool.connect()
   try {
     const res = await client.query(`
       INSERT INTO orderbook_${pair}
-        (seq, is_trade, is_bid, price, size, ts)
+        (seq, is_trade, is_bid, price, size, ts, type)
       VALUES
-        (${seq}, ${is_trade}, ${is_bid}, ${price}, ${size}, ${timestamp});
+        (${seq}, ${is_trade}, ${is_bid}, ${price}, ${size}, ${timestamp}, ${type});
     `);
-    console.log(res.rows[0]);
+    console.log("saved");
   } finally {
     client.release();
   }
 }
 
-export async function saveSnapshot(pair, seq, bids, asks) : Promise<void> {
+
+//untested
+export async function saveSnapshot(pair: string, seq: number, bids: any, asks: any) : Promise<void> {
   const client = await pool.connect();
   try {
     const json = JSON.stringify({ "bids": bids, "asks": asks });

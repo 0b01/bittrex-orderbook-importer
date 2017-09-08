@@ -1,4 +1,5 @@
-import * as bittrex from "node.bittrex.api";
+const bittrex = require("node.bittrex.api");
+
 import {
     ExchangeState,
     SummaryState,
@@ -23,9 +24,9 @@ import { toPair } from './utils';
 
 function allMarkets() : Promise<[string]> {
     return new Promise((resolve, reject) => {
-        bittrex.getmarketsummaries( function( data, err ) {
+        bittrex.getmarketsummaries( function( data : any, err : never) {
             if (err) reject(err);
-            const ret = data.result.map((market) => market.MarketName)
+            const ret = data.result.map((market : PairUpdate) => market.MarketName)
             resolve(ret);
         });
     });
@@ -73,11 +74,11 @@ async function watch() {
         await initTables(mkts);
         console.log("Tables created.");
 
-        listen(["BTC-NEO", "BTC-ETH"], (v, i, a) => {
+        listen(mkts, (v, i, a) => {
             let updates : DBUpdate[] = formatUpdate(v);
             updates.forEach(update => {
-                const { pair, seq, is_trade, is_bid, price, size, timestamp } = update;
-                saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp);
+                const { pair, seq, is_trade, is_bid, price, size, timestamp, type } = update;
+                saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp, type);
             });
         });
 
@@ -103,7 +104,8 @@ function formatUpdate(v : ExchangeStateUpdate) {
                 is_bid: true,
                 price: buy.Rate,
                 size: buy.Quantity,
-                timestamp
+                timestamp,
+                type: buy.Type
             }
         );
     });
@@ -117,7 +119,8 @@ function formatUpdate(v : ExchangeStateUpdate) {
                 is_bid: false,
                 price: sell.Rate,
                 size: sell.Quantity,
-                timestamp
+                timestamp,
+                type: sell.Type
             }
         );
     });
@@ -131,7 +134,8 @@ function formatUpdate(v : ExchangeStateUpdate) {
                 is_bid: fill.OrderType === "BUY",
                 price: fill.Rate,
                 size: fill.Quantity,
-                timestamp: (new Date(fill.TimeStamp)).getTime()
+                timestamp: (new Date(fill.TimeStamp)).getTime(),
+                type: null
             }
         );
     })
