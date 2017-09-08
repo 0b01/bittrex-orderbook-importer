@@ -37,6 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var bittrex = require("node.bittrex.api");
 var db_1 = require("./db");
+var utils_1 = require("./utils");
 function allMarkets() {
     return new Promise(function (resolve, reject) {
         bittrex.getmarketsummaries(function (data, err) {
@@ -67,7 +68,7 @@ function initTables(markets) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    pairs = markets.map(function (market) { return market.replace("-", "_").toLowerCase(); });
+                    pairs = markets.map(utils_1.toPair);
                     return [4 /*yield*/, Promise.all(pairs.map(function (pair) { return new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
                             var exists;
                             return __generator(this, function (_a) {
@@ -93,7 +94,6 @@ function initTables(markets) {
                     return [4 /*yield*/, Promise.all(pairs.map(db_1.tableExistsForPair))];
                 case 2:
                     created = _a.sent();
-                    console.log(created);
                     for (i = 0; i < created.length; i++) {
                         if (!created[i]) {
                             throw "Table for '" + pairs[i] + "' cannot be created.";
@@ -119,7 +119,11 @@ function watch() {
                     _a.sent();
                     console.log("Tables created.");
                     listen(["BTC-NEO", "BTC-ETH"], function (v, i, a) {
-                        console.log(v);
+                        var updates = formatUpdate(v);
+                        updates.forEach(function (update) {
+                            var pair = update.pair, seq = update.seq, is_trade = update.is_trade, is_bid = update.is_bid, price = update.price, size = update.size, timestamp = update.timestamp;
+                            db_1.saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp);
+                        });
                     });
                     return [3 /*break*/, 4];
                 case 3:
@@ -130,6 +134,46 @@ function watch() {
             }
         });
     });
+}
+function formatUpdate(v) {
+    var updates = [];
+    var pair = utils_1.toPair(v.MarketName);
+    var seq = v.Nounce;
+    var timestamp = Date.now() / 1000;
+    v.Buys.forEach(function (buy) {
+        updates.push({
+            pair: pair,
+            seq: seq,
+            is_trade: false,
+            is_bid: true,
+            price: buy.Rate,
+            size: buy.Quantity,
+            timestamp: timestamp
+        });
+    });
+    v.Sells.forEach(function (sell) {
+        updates.push({
+            pair: pair,
+            seq: seq,
+            is_trade: false,
+            is_bid: false,
+            price: sell.Rate,
+            size: sell.Quantity,
+            timestamp: timestamp
+        });
+    });
+    v.Fills.forEach(function (fill) {
+        updates.push({
+            pair: pair,
+            seq: seq,
+            is_trade: true,
+            is_bid: fill.OrderType === "BUY",
+            price: fill.Rate,
+            size: fill.Quantity,
+            timestamp: (new Date(fill.TimeStamp)).getTime()
+        });
+    });
+    return updates;
 }
 watch();
 //# sourceMappingURL=watch.js.map

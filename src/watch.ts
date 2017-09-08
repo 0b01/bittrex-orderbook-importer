@@ -46,14 +46,16 @@ function listen(markets : [string], exchangeCallback?: ExchangeCallback, summary
 async function initTables(markets : string[]) {
     let pairs = markets.map(toPair);
 
-    let create = await Promise.all(pairs.map(pair => new Promise(async (resolve, reject) => {
-        let exists = await tableExistsForPair(pair);
-        if (!exists) {
-            console.log(`${pair} table does not exist. Creating...`)
-            await createTableForPair(pair);
-        }
-        resolve(true);
-    })));
+    let create = await Promise.all(
+        pairs.map(pair => new Promise(async (resolve, reject) => {
+            let exists = await tableExistsForPair(pair);
+            if (!exists) {
+                console.log(`${pair} table does not exist. Creating...`)
+                await createTableForPair(pair);
+            }
+            resolve(true);
+        }))
+    );
 
     console.log("Double checking...");
     let created = await Promise.all(pairs.map(tableExistsForPair));
@@ -69,10 +71,14 @@ async function watch() {
         let mkts = await allMarkets()
 
         await initTables(mkts);
-
         console.log("Tables created.");
 
         listen(["BTC-NEO", "BTC-ETH"], (v, i, a) => {
+            let updates : DBUpdate[] = formatUpdate(v);
+            updates.forEach(update => {
+                const { pair, seq, is_trade, is_bid, price, size, timestamp } = update;
+                saveUpdate(pair, seq, is_trade, is_bid, price, size, timestamp);
+            });
         });
 
     } catch (e) {
