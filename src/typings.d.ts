@@ -75,3 +75,7 @@ export interface UnhandledData {
 }
 
 //================================
+//callbacks
+
+export type ExchangeCallback = (value: ExchangeStateUpdate, index?: number, array?: ExchangeStateUpdate[]) => void 
+export type SummaryCallback = (value: PairUpdate, index?: number, array?: PairUpdate[]) => void

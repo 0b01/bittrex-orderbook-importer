@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var bittrex = require("node.bittrex.api");
+var db_1 = require("./db");
 function allMarkets() {
     return new Promise(function (resolve, reject) {
         bittrex.getmarketsummaries(function (data, err) {
@@ -46,42 +47,89 @@ function allMarkets() {
         });
     });
 }
-function listen(markets) {
+function listen(markets, exchangeCallback, summaryCallback) {
     var websocketsclient = bittrex.websockets.subscribe(markets, function (data) {
         if (data.M === "updateExchangeState") {
-            data.A.forEach(function (mkt) {
-                console.log(mkt.MarketName);
-                console.log(mkt.Buys);
-            });
+            data.A.forEach(exchangeCallback);
         }
         else if (data.M === "updateSummaryState") {
-            // data.A[0].Deltas.forEach((pair : PairUpdate ) => {
-            //     console.log(pair.MarketName)
-            // })
+            data.A[0].Deltas.forEach(summaryCallback);
         }
         else {
             console.log('--------------', data); // <never>
         }
     });
 }
-function watch() {
+function initTables(markets) {
     return __awaiter(this, void 0, void 0, function () {
-        var markets;
+        var _this = this;
+        var pairs, create, created, i;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, allMarkets()];
+                case 0:
+                    pairs = markets.map(function (market) { return market.replace("-", "_").toLowerCase(); });
+                    return [4 /*yield*/, Promise.all(pairs.map(function (pair) { return new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
+                            var exists;
+                            return __generator(this, function (_a) {
+                                switch (_a.label) {
+                                    case 0: return [4 /*yield*/, db_1.tableExistsForPair(pair)];
+                                    case 1:
+                                        exists = _a.sent();
+                                        if (!!exists) return [3 /*break*/, 3];
+                                        console.log(pair + " table does not exist. Creating...");
+                                        return [4 /*yield*/, db_1.createTableForPair(pair)];
+                                    case 2:
+                                        _a.sent();
+                                        _a.label = 3;
+                                    case 3:
+                                        resolve(true);
+                                        return [2 /*return*/];
+                                }
+                            });
+                        }); }); }))];
                 case 1:
-                    markets = _a.sent();
-                    // listen(markets);
-                    listen(["BTC-NEO", "BTC-ETH"]);
+                    create = _a.sent();
+                    console.log("Double checking...");
+                    return [4 /*yield*/, Promise.all(pairs.map(db_1.tableExistsForPair))];
+                case 2:
+                    created = _a.sent();
+                    console.log(created);
+                    for (i = 0; i < created.length; i++) {
+                        if (!created[i]) {
+                            throw "Table for '" + pairs[i] + "' cannot be created.";
+                        }
+                    }
                     return [2 /*return*/];
             }
         });
     });
 }
+function watch() {
+    return __awaiter(this, void 0, void 0, function () {
+        var mkts, e_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 3, , 4]);
+                    return [4 /*yield*/, allMarkets()];
+                case 1:
+                    mkts = _a.sent();
+                    return [4 /*yield*/, initTables(mkts)];
+                case 2:
+                    _a.sent();
+                    console.log("Tables created.");
+                    listen(["BTC-NEO", "BTC-ETH"], function (v, i, a) {
+                        console.log(v);
+                    });
+                    return [3 /*break*/, 4];
+                case 3:
+                    e_1 = _a.sent();
+                    console.log(e_1);
+                    throw e_1;
+                case 4: return [2 /*return*/];
+            }
+        });
+    });
+}
 watch();
-// function readMarketsFromFile() {
-//     const markets = fs.readFileSync("./markets.txt", 'utf-8').split("\n");
-//     return markets;
-// } 
 //# sourceMappingURL=watch.js.map

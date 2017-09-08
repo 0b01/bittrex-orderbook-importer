@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^8.0.27",
-    "node.bittrex.api": "^0.4.3"
+    "@types/pg": "^7.1.0",
+    "node.bittrex.api": "^0.4.3",
+    "pg": "^7.3.0"
   }
 }

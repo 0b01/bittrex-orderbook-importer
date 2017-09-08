@@ -1,5 +1,20 @@
 import * as bittrex from "node.bittrex.api";
-import {ExchangeState, SummaryState} from './typings';
+import {
+    ExchangeState,
+    SummaryState,
+
+    ExchangeStateUpdate,
+    PairUpdate,
+
+    ExchangeCallback,
+    SummaryCallback
+} from './typings';
+
+import { 
+    saveSnapshot,
+    tableExistsForPair,
+    createTableForPair,
+} from './db';
 
 function allMarkets() : Promise<[string]> {
     return new Promise((resolve, reject) => {
@@ -12,36 +27,55 @@ function allMarkets() : Promise<[string]> {
 }
 
 
-function listen(markets : [string]) : void {
+function listen(markets : [string], exchangeCallback?: ExchangeCallback, summaryCallback?: SummaryCallback) : void {
     const websocketsclient = bittrex.websockets.subscribe(markets, (data : ExchangeState | SummaryState ) => {
         if (data.M === "updateExchangeState") {
-            data.A.forEach((mkt) => {
-                console.log(mkt.MarketName);
-                console.log(mkt.Buys);
-            })
+            data.A.forEach(exchangeCallback);
         } else if (data.M === "updateSummaryState") {
-            // data.A[0].Deltas.forEach((pair : PairUpdate ) => {
-            //     console.log(pair.MarketName)
-            // })
+            data.A[0].Deltas.forEach(summaryCallback)
         } else {
             console.log('--------------',data); // <never>
         }
     });
 }
 
+async function initTables(markets : string[]) {
+    let pairs = markets.map( market => market.replace("-", "_").toLowerCase());
+
+    let create = await Promise.all(pairs.map(pair => new Promise(async (resolve, reject) => {
+        let exists = await tableExistsForPair(pair);
+        if (!exists) {
+            console.log(`${pair} table does not exist. Creating...`)
+            await createTableForPair(pair);
+        }
+        resolve(true);
+    })));
+
+    console.log("Double checking...");
+    let created = await Promise.all(pairs.map(tableExistsForPair));
+    for (let i = 0; i < created.length; i++) {
+        if (!created[i]) {
+            throw `Table for '${pairs[i]}' cannot be created.`;
+        }
+    }
+}
 
 async function watch() {
-    const markets = await allMarkets();
+    try {
+        let mkts = await allMarkets()
 
-    // listen(markets);
+        await initTables(mkts);
 
-    listen(["BTC-NEO", "BTC-ETH"]);
+        console.log("Tables created.");
+
+        listen(["BTC-NEO", "BTC-ETH"], (v, i, a) => {
+            console.log(v);
+        });
+    } catch (e) {
+        console.log(e);
+        throw e;
+    }
 }
 
 
 watch();
-
-// function readMarketsFromFile() {
-//     const markets = fs.readFileSync("./markets.txt", 'utf-8').split("\n");
-//     return markets;
-// }
