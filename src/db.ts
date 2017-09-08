@@ -96,7 +96,6 @@ export async function saveUpdate(
       VALUES
         (${seq}, ${is_trade}, ${is_bid}, ${price}, ${size}, ${timestamp}, ${type});
     `);
-    console.log("saved");
   } finally {
     client.release();
   }
