@@ -8,7 +8,11 @@
         "allowJs": true,
         "typeRoots": [
             "./node_modules/@types"
-        ]
+        ],
+        "types": [ "node "],
+        "paths": {
+            "*": ["./node_modules/@types/*", "*"]
+        }
     },
     "include": [
         "./db/**/*",
