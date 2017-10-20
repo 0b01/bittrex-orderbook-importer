@@ -155,5 +155,7 @@ function test() {
         price: 0.1,
         timestamp: 100,
         type: 0
-    }], "default");
+    }], "default").then(()=>{
+        db.exit();
+    });
 }
