@@ -9,12 +9,23 @@ interface TectonicResponse {
     data: string;
 }
 
+type SocketMsgCb = (res: TectonicResponse) => void;
+
+interface SocketQuery {
+    message: string;
+    cb: SocketMsgCb;
+    onError: (err: any) => void;
+}
+
 class TectonicDB {
     port : number;
     address : string;
-    socket : any;
+    socket: any;
+    private socketSendQueue: SocketQuery[];
+    private activeQuery?: SocketQuery;
     constructor(port=PORT, address=HOST) {
         this.socket = new net.Socket();
+        this.activeQuery = null;
         this.address = address || HOST;
         this.port = port || PORT;
         this.init();
@@ -28,6 +39,14 @@ class TectonicDB {
 
         client.socket.on('close', () => {
             console.log('Client closed');
+        });
+
+        client.socket.on('data', this.handleSocketData);
+
+        client.socket.on('error', (err: any) => {
+            if(this.activeQuery) {
+                this.activeQuery.onError(err);
+            }
         });
     }
 
@@ -113,23 +132,50 @@ class TectonicDB {
         return await this.cmd(`USE ${dbname}`);
     }
 
+    handleSocketData(data: any) {
+        const success = data.subarray(0, 8)[0] === 1;
+        const len = new Uint32Array(data.subarray(8,9))[0];
+        const dataBody : string = String.fromCharCode.apply(null, data.subarray(9, len+12));
+        const response : TectonicResponse = {success, data: dataBody};
+
+        // execute the stored callback with the result of the query, fulfilling the promise
+        this.activeQuery.cb(response);
+
+        if (data.toString().endsWith('exit')) {
+            this.exit();
+        }
+
+        // if there's something left in the queue to process, do it next
+        // otherwise set the current query to empty
+        if(this.socketSendQueue.length === 0) {
+            this.activeQuery = null;
+        } else {
+            // equivalent to `popFront()`
+            this.activeQuery = this.socketSendQueue.shift();
+        }
+    }
+
+    sendSocketMsg(msg: string) {
+        this.socket.write(msg+'\n');
+    }
+
     cmd(message: string) : Promise<TectonicResponse> {
-        const client = this;
+
         return new Promise((resolve, reject) => {
-            client.socket.write(message+'\n');
-            client.socket.on('data', (data : any) => {
-                const success = data.subarray(0, 8)[0] === 1;
-                const len = new Uint32Array(data.subarray(8,9))[0];
-                const dataBody : string = String.fromCharCode.apply(null, data.subarray(9, len+12));
-                const response : TectonicResponse = {success, data: dataBody};
-                resolve(response);
-                if (data.toString().endsWith('exit')) {
-                    client.exit();
-                }
-            });
-            client.socket.on('error', (err: never) => {
-                reject(err);
-            });
+            const query: SocketQuery = {
+                message,
+                cb: resolve,
+                onError: reject,
+            };
+
+            if(!this.activeQuery) {
+                // socket is idle, so just send the message directly and set the cb
+                this.activeQuery = query;
+                this.sendSocketMsg(message);
+            } else {
+                // push message into the queue to be processed after the others
+                this.socketSendQueue.push({ message, cb: resolve, onError: reject });
+            }
         });
     }
 
