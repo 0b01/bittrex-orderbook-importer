@@ -1,13 +1,17 @@
-import TectonicDB from "./tectonic";
+import {TectonicPool} from "./tectonicdb";
 
-export const db = new TectonicDB();
+export const db = new TectonicPool(999);
 
 export async function createTableForPair(pair: string) : Promise<boolean> {
-  await db.create(pair);
-  return true;
+  return db.create(pair)
+  .then(() => {
+    return true
+  });
 }
 
-export async function tableExistsForPair(pair: string) : Promise<boolean> {
-  let {success} = await db.use(pair);
-  return success;
+export function tableExistsForPair(pair: string) : Promise<boolean> {
+  return db.use(pair)
+  .then(resp =>{
+    return resp.success
+  });
 }

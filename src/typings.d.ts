@@ -14,7 +14,7 @@ export type UpdateType = 0 // new order entries at matching price, add to orderb
                        ;
 
 export interface ExchangeStateUpdate {
-    MarketName: string,
+    MarketName: string, // BTC-NEO
     Nounce: number,
     Buys: [Buy],
     Sells: [Sell],
