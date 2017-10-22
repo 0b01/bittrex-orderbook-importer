@@ -146,8 +146,8 @@ async function watch() {
 
 const main = watch;
 
-main();
-// test();
+// main();
+test();
 
 async function test() {
     // db.use('default').then(()=>db.exit());

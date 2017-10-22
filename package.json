@@ -4,17 +4,23 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -r ts-node/register test/**/test.ts",
+    "build": "tsc",
+    "run": "tsc && node dist/watch.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^8.0.46",
     "@types/pg": "^7.1.0",
     "node.bittrex.api": "^0.4.3",
     "pg": "^7.3.0"
   },
   "devDependencies": {
-    "@types/node": "^8.0.46"
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.43",
+    "@types/node": "^8.0.46",
+    "chai": "^4.1.2",
+    "mocha": "^4.0.1",
+    "ts-node": "^3.3.0"
   }
 }
