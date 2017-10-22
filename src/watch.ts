@@ -124,8 +124,8 @@ async function initTables(markets : string[]) {
 
 async function watch() {
     try {
-        // let mkts = ["BTC-NEO", "BTC-ETH"];
-        const mkts = await allMarkets();
+        const mkts = ['BTC-NEO', 'BTC-ETH'];
+        // const mkts = await allMarkets();
         await initTables(mkts);
         console.log('Tables created.');
         listen(mkts, (v) => {
@@ -146,51 +146,4 @@ async function watch() {
 
 const main = watch;
 
-// main();
-test();
-
-async function test() {
-    // db.use('default').then(()=>db.exit());
-    await db.create('btc_eth');
-    await db.create('btc_neo');
-
-    await db.bulkadd_into([{
-        pair: 'btc_eth',
-        seq: 0,
-        is_bid: true,
-        is_trade: true,
-        size: 0.1,
-        price: 0.1,
-        timestamp: 100,
-        type: 0,
-    }], 'btc_eth');
-
-    await db.bulkadd_into([{
-        pair: 'btc_neo',
-        seq: 0,
-        is_bid: true,
-        is_trade: true,
-        size: 0.1,
-        price: 0.1,
-        timestamp: 100,
-        type: 0,
-    }], 'btc_neo');
-
-    await db.exit();
-
-    // db.ping()
-    // .then(async ()=>{
-    //     console.log('1');
-    //     console.log(await db.ping());
-    // })
-    // .then(async ()=>{
-    //     console.log('2')
-    //     console.log(await db.ping());
-    // }).then(async () => {
-    //     console.log('3')
-    //     console.log(await db.ping());
-    // }).then(() => {
-    //     console.log('done');
-    //     db.exit();
-    // });
-}
+main();

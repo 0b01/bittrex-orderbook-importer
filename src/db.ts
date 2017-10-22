@@ -1,6 +1,6 @@
 import {TectonicPool} from './tectonicdb';
 
-export const db = new TectonicPool(1);
+export const db = new TectonicPool(100);
 
 export async function createTableForPair(pair: string) : Promise<boolean> {
   return db.create(pair)
