@@ -1,17 +1,17 @@
-import {TectonicPool} from "./tectonicdb";
+import {TectonicPool} from './tectonicdb';
 
 export const db = new TectonicPool(1);
 
 export async function createTableForPair(pair: string) : Promise<boolean> {
   return db.create(pair)
   .then(() => {
-    return true
+    return true;
   });
 }
 
 export function tableExistsForPair(pair: string) : Promise<boolean> {
   return db.use(pair)
-  .then(resp =>{
-    return resp.success
+  .then((resp) => {
+    return resp.success;
   });
 }

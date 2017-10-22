@@ -8,33 +8,33 @@
  * ============================================================ */
 var NodeBittrexApi = function() {
 
-  'use strict';
+  "use strict";
 
-  var request = require('request'),
-    hmac_sha512 = require('./hmac-sha512.js'),
-    JSONStream = require('JSONStream'),
-    es = require('event-stream'),
-    jsonic = require('jsonic'),
-    signalR = require('signalr-client'),
+  var request = require("request"),
+    hmac_sha512 = require("./hmac-sha512.js"),
+    JSONStream = require("JSONStream"),
+    es = require("event-stream"),
+    jsonic = require("jsonic"),
+    signalR = require("signalr-client"),
     wsclient;
 
   var start,
     request_options = {
-      method: 'GET',
+      method: "GET",
       agent: false,
       headers: {
-        'User-Agent': 'Mozilla/4.0 (compatible; Node Bittrex API)',
-        'Content-type': 'application/x-www-form-urlencoded'
-      }
+        "User-Agent": "Mozilla/4.0 (compatible; Node Bittrex API)",
+        "Content-type": "application/x-www-form-urlencoded",
+      },
     };
 
   var opts = {
-    baseUrl: 'https://bittrex.com/api/v1.1',
-    baseUrlv2: 'https://bittrex.com/Api/v2.0',
-    websockets_baseurl: 'wss://socket.bittrex.com/signalr',
-    websockets_hubs: ['CoreHub'],
-    apikey: 'APIKEY',
-    apisecret: 'APISECRET',
+    baseUrl: "https://bittrex.com/api/v1.1",
+    baseUrlv2: "https://bittrex.com/Api/v2.0",
+    websockets_baseurl: "wss://socket.bittrex.com/signalr",
+    websockets_hubs: ["CoreHub"],
+    apikey: "APIKEY",
+    apisecret: "APISECRET",
     verbose: false,
     cleartext: false,
     stream: false,
@@ -56,7 +56,7 @@ var NodeBittrexApi = function() {
   var apiCredentials = function(uri) {
     var options = {
       apikey: opts.apikey,
-      nonce: getNonce()
+      nonce: getNonce(),
     };
 
     return setRequestUriGetParams(uri, options);
@@ -64,13 +64,12 @@ var NodeBittrexApi = function() {
 
   var setRequestUriGetParams = function(uri, options) {
     var op;
-    if (typeof(uri) === 'object') {
+    if (typeof(uri) === "object") {
       op = uri;
       uri = op.uri;
     } else {
       op = request_options;
     }
-
 
     var o = Object.keys(options),
       i;
@@ -86,10 +85,10 @@ var NodeBittrexApi = function() {
 
   var updateQueryStringParameter = function(uri, key, value) {
     var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
-    var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+    var separator = uri.indexOf("?") !== -1 ? "&" : "?";
 
     if (uri.match(re)) {
-      uri = uri.replace(re, '$1' + key + "=" + value + '$2');
+      uri = uri.replace(re, "$1" + key + "=" + value + "$2");
     } else {
       uri = uri + separator + key + "=" + value;
     }
@@ -103,19 +102,19 @@ var NodeBittrexApi = function() {
     switch (opts.stream) {
       case true:
         request(op)
-          .pipe(JSONStream.parse('*'))
+          .pipe(JSONStream.parse("*"))
           .pipe(es.mapSync(function(data) {
             callback(data);
-            ((opts.verbose) ? console.log("streamed from " + op.uri + " in: %ds", (Date.now() - start) / 1000) : '');
+            ((opts.verbose) ? console.log("streamed from " + op.uri + " in: %ds", (Date.now() - start) / 1000) : "");
           }));
         break;
       case false:
         request(op, function(error, result, body) {
-          ((opts.verbose) ? console.log("requested from " + op.uri + " in: %ds", (Date.now() - start) / 1000) : '');
+          ((opts.verbose) ? console.log("requested from " + op.uri + " in: %ds", (Date.now() - start) / 1000) : "");
           if (!body || !result || result.statusCode != 200) {
             var errorObj = {
               success: false,
-              message: 'URL request error',
+              message: "URL request error",
               error: error,
               result: result,
             };
@@ -157,41 +156,41 @@ var NodeBittrexApi = function() {
   var connectws = function(callback) {
     wsclient = new signalR.client(
       opts.websockets_baseurl,
-      opts.websockets_hubs
+      opts.websockets_hubs,
     );
 
-    wsclient.headers['User-Agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36";
-    wsclient.headers['Referer'] = "https://bittrex.com/";
-    wsclient.headers['Origin'] = "https://bittrex.com/";
-    wsclient.headers['Host'] = "socket.bittrex.com/";
-    wsclient.headers['Cookie'] = "__cfduid=d873a18468347d2972ec89732982272881504965575; cf_clearance=98ea2ee801845010ffe5685a5e7f31248b73f632-1504965580-10800";
+    wsclient.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36";
+    wsclient.headers.Referer = "https://bittrex.com/";
+    wsclient.headers.Origin = "https://bittrex.com/";
+    wsclient.headers.Host = "socket.bittrex.com/";
+    wsclient.headers.Cookie = "__cfduid=d873a18468347d2972ec89732982272881504965575; cf_clearance=98ea2ee801845010ffe5685a5e7f31248b73f632-1504965580-10800";
 
     wsclient.serviceHandlers = {
       bound: function() {
-        ((opts.verbose) ? console.log('Websocket bound') : '');
+        ((opts.verbose) ? console.log("Websocket bound") : "");
       },
       connectFailed: function(error) {
-        ((opts.verbose) ? console.log('Websocket connectFailed: ', error) : '');
+        ((opts.verbose) ? console.log("Websocket connectFailed: ", error) : "");
       },
       disconnected: function() {
-        ((opts.verbose) ? console.log('Websocket disconnected') : '');
-        setImmediate(function(){wsclient.start()});
+        ((opts.verbose) ? console.log("Websocket disconnected") : "");
+        setImmediate(function() {wsclient.start();});
       },
       onerror: function(error) {
-        ((opts.verbose) ? console.log('Websocket onerror: ', error) : '');
-        setImmediate(function(){wsclient.start()});
+        ((opts.verbose) ? console.log("Websocket onerror: ", error) : "");
+        setImmediate(function() {wsclient.start();});
       },
       bindingError: function(error) {
-        ((opts.verbose) ? console.log('Websocket bindingError: ', error) : '');
+        ((opts.verbose) ? console.log("Websocket bindingError: ", error) : "");
       },
       connectionLost: function(error) {
-        ((opts.verbose) ? console.log('Connection Lost: ', error) : '');
+        ((opts.verbose) ? console.log("Connection Lost: ", error) : "");
       },
       reconnecting: function(retry) {
-        ((opts.verbose) ? console.log('Websocket Retrying: ', retry) : '');
+        ((opts.verbose) ? console.log("Websocket Retrying: ", retry) : "");
         // change to true to stop retrying
         return false;
-      }
+      },
     };
     return wsclient;
   };
@@ -206,10 +205,10 @@ var NodeBittrexApi = function() {
           });
         } else {
           // ((opts.verbose) ? console.log('Unhandled data', data) : '');
-          callback({'unhandled_data' : data});
+          callback({"unhandled_data" : data});
         }
       } catch (e) {
-        ((opts.verbose) ? console.error(e) : '');
+        ((opts.verbose) ? console.error(e) : "");
       }
       return false;
     };
@@ -218,17 +217,17 @@ var NodeBittrexApi = function() {
   var setConnectedWs = function(markets) {
     wsclient.serviceHandlers.connected = function(connection) {
       markets.forEach(function(market) {
-        wsclient.call('CoreHub', 'SubscribeToExchangeDeltas', market).done(function(err, result) {
+        wsclient.call("CoreHub", "SubscribeToExchangeDeltas", market).done(function(err, result) {
           if (err) {
             return console.error(err);
           }
 
           if (result === true) {
-            ((opts.verbose) ? console.log('Subscribed to ' + market) : '');
+            ((opts.verbose) ? console.log("Subscribed to " + market) : "");
           }
         });
       });
-      ((opts.verbose) ? console.log('Websocket connected') : '');
+      ((opts.verbose) ? console.log("Websocket connected") : "");
     };
   };
 
@@ -250,7 +249,7 @@ var NodeBittrexApi = function() {
         setConnectedWs(markets);
         setMessageReceivedWs(callback);
         return client;
-      }
+      },
     },
     sendCustomRequest: function(request_string, callback, credentials) {
       var op;
@@ -264,71 +263,71 @@ var NodeBittrexApi = function() {
       sendRequestCallback(callback, op);
     },
     getmarkets: function(callback) {
-      publicApiCall(opts.baseUrl + '/public/getmarkets', callback, null);
+      publicApiCall(opts.baseUrl + "/public/getmarkets", callback, null);
     },
     getcurrencies: function(callback) {
-      publicApiCall(opts.baseUrl + '/public/getcurrencies', callback, null);
+      publicApiCall(opts.baseUrl + "/public/getcurrencies", callback, null);
     },
     getticker: function(options, callback) {
-      publicApiCall(opts.baseUrl + '/public/getticker', callback, options);
+      publicApiCall(opts.baseUrl + "/public/getticker", callback, options);
     },
     getmarketsummaries: function(callback) {
-      publicApiCall(opts.baseUrl + '/public/getmarketsummaries', callback, null);
+      publicApiCall(opts.baseUrl + "/public/getmarketsummaries", callback, null);
     },
     getmarketsummary: function(options, callback) {
-      publicApiCall(opts.baseUrl + '/public/getmarketsummary', callback, options);
+      publicApiCall(opts.baseUrl + "/public/getmarketsummary", callback, options);
     },
     getorderbook: function(options, callback) {
-      publicApiCall(opts.baseUrl + '/public/getorderbook', callback, options);
+      publicApiCall(opts.baseUrl + "/public/getorderbook", callback, options);
     },
     getmarkethistory: function(options, callback) {
-      publicApiCall(opts.baseUrl + '/public/getmarkethistory', callback, options);
+      publicApiCall(opts.baseUrl + "/public/getmarkethistory", callback, options);
     },
     getcandles: function(options, callback) {
-      publicApiCall(opts.baseUrlv2 + '/pub/market/GetTicks', callback, options);
+      publicApiCall(opts.baseUrlv2 + "/pub/market/GetTicks", callback, options);
     },
     buylimit: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/buylimit', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/buylimit", callback, options);
     },
     buymarket: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/buymarket', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/buymarket", callback, options);
     },
     selllimit: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/selllimit', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/selllimit", callback, options);
     },
     sellmarket: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/sellmarket', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/sellmarket", callback, options);
     },
     cancel: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/cancel', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/cancel", callback, options);
     },
     getopenorders: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/market/getopenorders', callback, options);
+      credentialApiCall(opts.baseUrl + "/market/getopenorders", callback, options);
     },
     getbalances: function(callback) {
-      credentialApiCall(opts.baseUrl + '/account/getbalances', callback, {});
+      credentialApiCall(opts.baseUrl + "/account/getbalances", callback, {});
     },
     getbalance: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getbalance', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getbalance", callback, options);
     },
     getwithdrawalhistory: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getwithdrawalhistory', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getwithdrawalhistory", callback, options);
     },
     getdepositaddress: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getdepositaddress', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getdepositaddress", callback, options);
     },
     getdeposithistory: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getdeposithistory', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getdeposithistory", callback, options);
     },
     getorderhistory: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getorderhistory', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getorderhistory", callback, options);
     },
     getorder: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/getorder', callback, options);
+      credentialApiCall(opts.baseUrl + "/account/getorder", callback, options);
     },
     withdraw: function(options, callback) {
-      credentialApiCall(opts.baseUrl + '/account/withdraw', callback, options);
-    }
+      credentialApiCall(opts.baseUrl + "/account/withdraw", callback, options);
+    },
   };
 }();
 
