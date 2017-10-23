@@ -14,11 +14,7 @@ import {
     SummaryState,
 } from './typings';
 
-import {
-    createTableForPair,
-    db,
-    tableExistsForPair,
-} from './db';
+import db from './db';
 
 import { toPair } from './utils';
 
@@ -104,17 +100,21 @@ async function initTables(markets : string[]) {
 
     const create = await Promise.all(
         pairs.map((pair) => new Promise(async (resolve, reject) => {
-            const exists = await tableExistsForPair(pair);
+            const exists = (await db.use(pair)).success;
             if (!exists) {
                 console.log(`${pair} table does not exist. Creating...`);
-                await createTableForPair(pair);
+                await db.create(pair);
             }
             resolve(true);
         })),
     );
 
     console.log('Double checking...');
-    const created = await Promise.all(pairs.map(tableExistsForPair));
+    const created = await Promise.all(pairs.map((pair) =>
+        new Promise(async (resolve, reject) => {
+            const {success} = await db.use(pair);
+            resolve(success);
+        })));
     for (let i = 0; i < created.length; i++) {
         if (!created[i]) {
             throw new Error(`Table for '${pairs[i]}' cannot be created.`);
