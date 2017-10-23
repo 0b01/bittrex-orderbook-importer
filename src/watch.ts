@@ -1,5 +1,5 @@
 // tslint:disable-next-line:no-var-requires
-const bittrex = require('./node.bittrex.api');
+import bittrex from './bittrex';
 
 import {
     DBUpdate,
