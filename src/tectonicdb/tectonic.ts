@@ -12,7 +12,7 @@ interface TectonicResponse {
 
 type SocketMsgCb = (res: TectonicResponse) => void;
 
-interface SocketQuery {
+export interface SocketQuery {
     message: string;
     cb: SocketMsgCb;
     onError: (err: any) => void;
@@ -22,17 +22,23 @@ export default class TectonicDB {
     port : number;
     address : string;
     socket: any;
+    initialized: boolean;
+    dead: boolean;
+    private onDisconnect: any;
+
     private socketSendQueue: SocketQuery[];
     private activeQuery?: SocketQuery;
-    private initialized: boolean;
     private readerBuffer: Buffer;
 
-    constructor(port=PORT, address=HOST) {
+    // tslint:disable-next-line:no-empty
+    constructor(port=PORT, address=HOST, onDisconnect=((queue: SocketQuery[]) => { })) {
         this.socket = new net.Socket();
         this.activeQuery = null;
         this.address = address || HOST;
         this.port = port || PORT;
         this.initialized = false;
+        this.dead = false;
+        this.onDisconnect = onDisconnect;
         this.init();
     }
 
@@ -56,6 +62,8 @@ export default class TectonicDB {
 
         client.socket.on('close', () => {
             // console.log('Client closed');
+            client.dead = true;
+            client.onDisconnect(client.socketSendQueue);
         });
 
         client.socket.on('data', (data: any) =>
@@ -234,5 +242,10 @@ export default class TectonicDB {
 
     getQueueLen(): number {
         return this.socketSendQueue.length;
+    }
+
+    concatQueue(otherQueue: SocketQuery[]) {
+        this.socketSendQueue = this.socketSendQueue
+                                .concat(otherQueue);
     }
 }

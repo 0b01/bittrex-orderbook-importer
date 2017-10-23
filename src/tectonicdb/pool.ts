@@ -1,5 +1,5 @@
 import { DBUpdate } from '../typings';
-import TectonicDB from './tectonic';
+import TectonicDB, { SocketQuery } from './tectonic';
 
 const THREADS = 20;
 const PORT = 9001;
@@ -19,8 +19,18 @@ export default class TectonicPool {
         this.sockets = [];
         this.count = 0;
         for (let i = 0; i < this.threads; i++) {
-            this.sockets.push(new TectonicDB(this.port, this.address));
+            this.sockets.push(this.newSocket());
         }
+    }
+
+    newSocket() {
+        return new TectonicDB(this.port, this.address, this.onDisconnect);
+    }
+
+    onDisconnect(queue: SocketQuery[]) {
+        const pool = this;
+        pool.sockets = pool.sockets.map((socket) => socket.dead ? pool.newSocket() : socket);
+        pool.bestSocket().concatQueue(queue);
     }
 
     bestSocket(): TectonicDB {
