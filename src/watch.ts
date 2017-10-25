@@ -124,8 +124,8 @@ async function initTables(markets : string[]) {
 
 async function watch() {
     try {
-        const mkts = ['BTC-NEO', 'BTC-ETH'];
-        // const mkts = await allMarkets();
+        // const mkts = ['BTC-NEO', 'BTC-ETH'];
+        const mkts = await allMarkets();
         await initTables(mkts);
         console.log('Tables created.');
         listen(mkts, (v) => {
