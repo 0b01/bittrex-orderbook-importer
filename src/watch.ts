@@ -114,7 +114,6 @@ async function initTables(markets : string[]) {
     const created = await Promise.all(pairs.map((pair) =>
         new Promise(async (resolve, reject) => {
             const {success} = await db.exists(pair);
-            resolve(success);
         })));
     for (let i = 0; i < created.length; i++) {
         if (!created[i]) {
