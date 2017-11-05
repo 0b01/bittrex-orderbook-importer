@@ -114,6 +114,7 @@ async function initTables(markets : string[]) {
     const created = await Promise.all(pairs.map((pair) =>
         new Promise(async (resolve, reject) => {
             const {success} = await db.exists(pair);
+            resolve(success);
         })));
     for (let i = 0; i < created.length; i++) {
         if (!created[i]) {
@@ -126,16 +127,16 @@ async function watch() {
     try {
         // const mkts = ['BTC-NEO', 'BTC-ETH'];
         const mkts = await allMarkets();
-        await initTables(mkts);
+        await initTables(mkts.map(m => "bt_"+m));
         console.log('Tables created.');
         listen(mkts, (v) => {
             const updates : DBUpdate[] = formatUpdate(v);
             const pair = updates[0].pair;
             if (updates.length === 1) {
                 const up = updates[0];
-                db.insert(up, pair);
+                db.insert(up, "bt_"+pair);
             } else {
-                db.bulkadd_into(updates, pair);
+                db.bulkadd_into(updates, "bt_"+pair);
             }
         });
     } catch (e) {
