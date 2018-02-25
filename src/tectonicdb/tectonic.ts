@@ -1,16 +1,19 @@
 const net = require('net');
+const textEncoding = require('text-encoding');
 const THREADS = 20;
 const PORT = 9001;
 const HOST = 'localhost';
 
-import { DBUpdate } from '../typings';
+const TextDecoder = textEncoding.TextDecoder;
 
-interface TectonicResponse {
+import { DBUpdate } from './typings';
+
+export interface TectonicResponse {
     success: boolean;
     data: string;
 }
 
-type SocketMsgCb = (res: TectonicResponse) => void;
+export type SocketMsgCb = (res: TectonicResponse) => void;
 
 export interface SocketQuery {
     message: string;
@@ -27,7 +30,7 @@ export default class TectonicDB {
     private onDisconnect: any;
 
     private socketSendQueue: SocketQuery[];
-    private activeQuery?: SocketQuery;
+    private activeQuery?: SocketQuery | null;
     private readerBuffer: Buffer;
 
     // tslint:disable-next-line:no-empty
@@ -56,14 +59,14 @@ export default class TectonicDB {
             if(this.socketSendQueue.length > 0) {
                 // console.log('Sending queued message after DB connected...');
                 client.activeQuery = this.socketSendQueue.shift();
-                client.sendSocketMsg(this.activeQuery.message);
+                if (this.activeQuery != null)
+                    client.sendSocketMsg(this.activeQuery.message);
             }
         });
 
         client.socket.on('close', () => {
-            // console.log('Client closed');
             client.dead = true;
-            client.onDisconnect(client.socketSendQueue);
+            client.onDisconnect(this.socketSendQueue);
         });
 
         client.socket.on('data', (data: any) =>
@@ -164,42 +167,38 @@ export default class TectonicDB {
         return this.cmd(`EXISTS ${dbname}`);
     }
 
+
     handleSocketData(data: Buffer) {
         const client = this;
 
         const totalLength = client.readerBuffer.length + data.length;
         client.readerBuffer = Buffer.concat([client.readerBuffer, data], totalLength);
 
-        // check if received a full response from stream, if no, store to buffer.
-        const firstResponse = client.readerBuffer.indexOf(0x0a); // chr(0x0a) == '\n'
-        if (firstResponse === -1) { // newline not found
-            return;
+        const success = client.readerBuffer.readUIntBE(0, 1, true);
+        const len = client.readerBuffer.readUInt32BE(5, true);
+        const text = client.readerBuffer.subarray(9);
+
+        const dataBody = new TextDecoder("utf-8").decode(text);
+        // console.log(success, len, dataBody);
+        const response = {
+            success: success === 1,
+            data: dataBody,
+        };
+
+        if (client.activeQuery) {
+            // execute the stored callback with the result of the query, fulfilling the promise
+            client.activeQuery.cb(response);
+        }
+
+        // if there's something left in the queue to process, do it next
+        // otherwise set the current query to empty
+        if(client.socketSendQueue.length === 0) {
+            client.activeQuery = null;
         } else {
-            // data up to first newline
-            const data = client.readerBuffer.subarray(0, firstResponse+1);
-            // remove up to first newline
-            const rest = client.readerBuffer.subarray(firstResponse+1, client.readerBuffer.length);
-            client.readerBuffer = new Buffer(rest);
-
-            const success = data.subarray(0, 8)[0] === 1;
-            const len = new Uint32Array(data.subarray(8,9))[0];
-            const dataBody : string = String.fromCharCode.apply(null, data.subarray(9, 12+len));
-            const response : TectonicResponse = {success, data: dataBody};
-
-            if (client.activeQuery) {
-                // execute the stored callback with the result of the query, fulfilling the promise
-                client.activeQuery.cb(response);
-            }
-
-            // if there's something left in the queue to process, do it next
-            // otherwise set the current query to empty
-            if(client.socketSendQueue.length === 0) {
-                client.activeQuery = null;
-            } else {
-                // equivalent to `popFront()`
-                client.activeQuery = this.socketSendQueue.shift();
+            // equivalent to `popFront()`
+            client.activeQuery = this.socketSendQueue.shift();
+            if (client.activeQuery)
                 client.sendSocketMsg(client.activeQuery.message);
-            }
         }
     }
 
@@ -209,7 +208,7 @@ export default class TectonicDB {
 
     cmd(message: string | string[]) : Promise<TectonicResponse> {
         const client = this;
-        let ret: Promise<TectonicResponse>;
+        let ret : any /* Promise<TectonicResponse> */= null;
 
         if (Array.isArray(message)) {
              ret = new Promise((resolve, reject) => {
@@ -234,7 +233,8 @@ export default class TectonicDB {
 
         if (client.activeQuery == null && this.initialized) {
             client.activeQuery = this.socketSendQueue.shift();
-            client.sendSocketMsg(client.activeQuery.message);
+            if (client.activeQuery != null)
+                client.sendSocketMsg(client.activeQuery.message);
         }
 
         return ret;

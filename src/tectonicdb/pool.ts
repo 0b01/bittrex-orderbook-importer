@@ -1,5 +1,5 @@
-import { DBUpdate } from '../typings';
-import TectonicDB, { SocketQuery } from './tectonic';
+import { DBUpdate } from './typings';
+import TectonicDB, { SocketQuery, TectonicResponse } from './tectonic';
 
 const THREADS = 20;
 const PORT = 9001;
@@ -24,20 +24,20 @@ export default class TectonicPool {
     }
 
     newSocket() {
-        return new TectonicDB(this.port, this.address, this.onDisconnect);
+        return new TectonicDB(this.port, this.address, (e) => this.onDisconnect(e));
     }
 
     onDisconnect(queue: SocketQuery[]) {
-        // this.sockets = this.sockets.map((socket) => socket.dead ? this.newSocket() : socket);
-        // this.bestSocket().concatQueue(queue);
+        this.sockets = this.sockets.map((socket) => socket.dead ? this.newSocket() : socket);
+        this.bestSocket().concatQueue(queue);
     }
 
     bestSocket(): TectonicDB {
         const lens = this.sockets.map((sock) => sock.getQueueLen());
         this.count++;
-        if (this.count % 100) {
-            console.log(lens.reduce((acc,i) => acc+i, 0));
-        }
+        // if (this.count % 100) {
+        //    console.log(lens.reduce((acc,i) => acc+i, 0));
+        // }
         const j = lens.indexOf(Math.min(...lens));
         return this.sockets[j];
     }

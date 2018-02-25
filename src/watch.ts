@@ -1,6 +1,6 @@
 // tslint:disable-next-line:no-var-requires
 // import bittrex from './bittrex';
-const bittrex = require('node-bittrex-api');
+const bittrex = require('./node.bittrex.api');
 
 import {
     DBUpdate,
@@ -34,7 +34,7 @@ function formatUpdate(v : ExchangeStateUpdate) {
 
     const pair = toPair(v.MarketName);
     const seq = v.Nounce;
-    const timestamp = Date.now() / 1000;
+    const timestamp = Date.now(); // in ms
 
     v.Buys.forEach((buy) => {
         updates.push(
@@ -67,6 +67,7 @@ function formatUpdate(v : ExchangeStateUpdate) {
     });
 
     v.Fills.forEach((fill) => {
+        let timestamp = (new Date(fill.TimeStamp)).getTime() / 1000 * 1000;
         updates.push(
             {
                 pair,
@@ -75,7 +76,7 @@ function formatUpdate(v : ExchangeStateUpdate) {
                 is_bid: fill.OrderType === 'BUY',
                 price: fill.Rate,
                 size: fill.Quantity,
-                timestamp: (new Date(fill.TimeStamp)).getTime() / 1000,
+                timestamp,
                 type: null,
             },
         );

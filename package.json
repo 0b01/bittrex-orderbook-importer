@@ -13,7 +13,8 @@
   "dependencies": {
     "@types/pg": "^7.1.0",
     "node-bittrex-api": "^0.7.6",
-    "pg": "^7.3.0"
+    "pg": "^7.3.0",
+    "text-encoding": "^0.6.4"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
